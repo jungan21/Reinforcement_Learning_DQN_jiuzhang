@@ -68,15 +68,18 @@ class AtariPreprocessor(Preprocessor):
         the API of PIL is below:
         https://pillow.readthedocs.io/en/4.0.x/reference/Image.html
         """
+        # 当前是RGB 转态
         state = Image.fromarray(state, 'RGB')
+        # transfer to 灰度图
         state = state.convert(mode='L')
         short_side = min(state.width, state.height)
         long_side = max(state.width, state.height)
         long_scale = int(long_side * float(self.scale[0]) / short_side)
         state = state.resize((self.scale[0], long_scale))
+        # 切成 84 * 84
         state = self.crop_image(state, self.scale[0], self.scale[1])
         state = np.asarray(state)
-
+        # 这里还没有把4帧累加到一起。。。累加是在mem array 里做的也就是memory replay class 里
         return state
 
     def process_state_for_network(self, state):
