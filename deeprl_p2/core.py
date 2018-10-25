@@ -195,6 +195,7 @@ class ReplayMemory:
     clear()
       Reset the memory. Deletes all references to the samples.
     """
+    # max_size 记忆多少帧数， window_length : 4
     def __init__(self, max_size, window_length):
         """Setup memory.
 
@@ -224,14 +225,18 @@ class ReplayMemory:
     def append(self, state, action, reward, is_terminal):
         if self.start == 0 and self.end == 0: # the first frame
             # 1 2 3 S E
+            # 第一帧 画面重复 成 window size 也就是4
             for i in range(self.window_length-1):
                 self.mem_state[i] = state
+                # 取模 防止超出 环的大小
                 self.start = (self.start + 1) % self.mem_size
+            # now start 对应 PPT 43 页 K的位置
             self.mem_state[self.start] = state
             self.mem_action[self.start] = action
             self.mem_reward[self.start] = reward
             self.mem_terminal[self.start] = is_terminal
             self.end = (self.start + 1) % self.mem_size
+        # 环里有内容了，直接在end 的位置操作
         else:
             # Case 1:  1 2 3 S ... E
             # Case 2:  ... E 1 2 3 S ...
@@ -240,20 +245,26 @@ class ReplayMemory:
             self.mem_reward[self.end] = reward
             self.mem_terminal[self.end] = is_terminal
             self.end = (self.end + 1) % self.mem_size
+            # full state
             if self.end > 0 and self.end < self.start:
                 self.full = True
 
             if self.full:
+                # start 也要往前移动了， 不满的时候start 不需要移动
                 self.start = (self.start + 1) % self.mem_size
 
     def sample(self, batch_size, indexes=None):
+        # empty 环
         if self.end == 0 and self.start == 0:
             # state, action, reward, next_state, is_terminal
             return None, None, None, None, None
+        # 有内容的
         else:
             count = 0
+            #未满
             if self.end > self.start:
                 count = self.end - self.start
+            #满了    
             else:
                 count = self.max_size
 
@@ -264,12 +275,14 @@ class ReplayMemory:
                 indices = np.random.randint(0, count-1, size=batch_size)
 
             # 4 is the current state frame because of our design
+            # 对应PPT 43 页
             indices_5 = (self.start + indices + 1) % self.mem_size
             indices_4 = (self.start + indices) % self.mem_size
             indices_3 = (self.start + indices - 1) % self.mem_size
             indices_2 = (self.start + indices - 2) % self.mem_size
             indices_1 = (self.start + indices - 3) % self.mem_size
             frame_5 = self.mem_state[indices_5]
+            # frame_4 对应PPT 43 页 中的K
             frame_4 = self.mem_state[indices_4]
             frame_3 = self.mem_state[indices_3]
             frame_2 = self.mem_state[indices_2]
@@ -283,6 +296,7 @@ class ReplayMemory:
 
             action_list = self.mem_action[indices_4]
             reward_list = self.mem_reward[indices_4]
+            # is terminal 环
             terminal_list = self.mem_terminal[indices_4]
 
             return state_list, action_list, reward_list, next_state_list, terminal_list
