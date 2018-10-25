@@ -7,7 +7,8 @@ in your code.
 import numpy as np
 import attr
 
-
+# Policy: 根据 Q value 选择action
+# 抽象类
 class Policy:
     """Base class representing an MDP policy.
 
@@ -32,7 +33,7 @@ class Policy:
         """
         raise NotImplementedError('This method should be overriden.')
 
-
+# Policy 的子类
 class UniformRandomPolicy(Policy):
     """Chooses a discrete action with uniform random probability.
 
@@ -63,6 +64,7 @@ class UniformRandomPolicy(Policy):
         int:
           Action index in range [0, num_actions)
         """
+        # 0 到4之间随机选择一个
         return np.random.randint(0, self.num_actions)
 
     def get_config(self):  # noqa: D102
