@@ -55,7 +55,9 @@ def create_model(window, input_shape, num_actions,
     network_model = None
     if model_name == 'q_network':
         with tf.name_scope('q_network'):
+            # input layer
             with tf.name_scope('input'):
+                # window: 4 帧 input_shape[0], input_shape[1]  84， 84
                 input_state = Input(shape=(window, input_shape[0], input_shape[1]))
                 input_action = Input(shape=(num_actions,))
 
@@ -71,9 +73,11 @@ def create_model(window, input_shape, num_actions,
 
             with tf.name_scope('output'):
                 q_values = Dense(num_actions, kernel_initializer='glorot_uniform', activation=None)(dense1)
+                # selected action: is 1, unselect action is 0 
                 q_v = dot([q_values, input_action], axes=1)
 
             network_model = Model(inputs=[input_state, input_action], outputs=q_v)
+            # K.function  建立输入 输出的关系
             q_values_func = K.function([input_state], [q_values])
 
         network_model.summary()
