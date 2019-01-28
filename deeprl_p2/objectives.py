@@ -1,3 +1,4 @@
+#coding:utf-8
 """Loss functions."""
 
 import keras.backend as K

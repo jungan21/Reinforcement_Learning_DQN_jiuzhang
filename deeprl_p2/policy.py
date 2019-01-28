@@ -1,3 +1,4 @@
+#coding:utf-8
 """RL Policy classes.
 
 We have provided you with a base policy class, some example

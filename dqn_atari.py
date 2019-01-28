@@ -1,3 +1,4 @@
+#coding:utf-8
 #!/usr/bin/env python
 """Run Atari Environment with DQN."""
 import argparse
@@ -38,8 +39,7 @@ def create_model(window, input_shape, num_actions,
     Parameters
     ----------
     window: int
-      Each input to the network is a sequence of frames. This value
-      defines how many frames are in the sequence.
+      Each input to the network is a sequence of frames. This value defines how many frames are in the sequence.
     input_shape: tuple(int, int)
       The expected input image size.
     num_actions: int
@@ -53,6 +53,7 @@ def create_model(window, input_shape, num_actions,
       The Q-model.
     """
     network_model = None
+    # PPT: Week11.Session2.RL_Project2_V1.2.pdf,  Section: 􏰤􏰥􏰦 􏴖􏰹􏰮􏳌􏴗􏰭􏰹􏲻􏴗􏴏􏰹􏳑DQN Visualization
     if model_name == 'q_network':
         with tf.name_scope('q_network'):
             # input layer
@@ -68,17 +69,19 @@ def create_model(window, input_shape, num_actions,
                 conv2 = Conv2D(32, (4, 4), data_format='channels_first', kernel_initializer='glorot_uniform', activation='relu', padding='valid', strides=(2, 2))(conv1)
 
             with tf.name_scope('fc'):
-                flattened = Flatten()(conv2)
+                flattened = Flatten()(conv2) # flatten conv2
+                # in Keras, Dense 就是 FC layer
                 dense1 = Dense(256, kernel_initializer='glorot_uniform', activation='relu')(flattened)
 
             with tf.name_scope('output'):
+                # ??? 如何做到挑选action 和计算q_values?
                 q_values = Dense(num_actions, kernel_initializer='glorot_uniform', activation=None)(dense1)
-                # selected action: is 1, unselect action is 0 
+                # selected action: lable is 1, unselect action: label is 0
                 q_v = dot([q_values, input_action], axes=1)
 
             network_model = Model(inputs=[input_state, input_action], outputs=q_v)
             # K.function  建立输入 输出的关系
-            q_values_func = K.function([input_state], [q_values])
+            q_values_func = K.function([input_state], [q_values]) # K: import keras.backend as K
 
         network_model.summary()
 
@@ -147,6 +150,7 @@ def train(args):
     }
 
     print("Generate Model...")
+    # i.e. dqn.py. 把上面生产的model, preprocessor, ,memory 都传递给DQNAgent
     dqn_agent = DQNAgent(network_model, q_values_func, preprocessor, memory, policy, args.gamma, args.target_update_freq, args.num_burn_in, args.train_freq, args.batch_size, args.output)
 
     print("Compile Model...")

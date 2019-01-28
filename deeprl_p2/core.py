@@ -1,3 +1,4 @@
+#coding:utf-8
 """Core classes."""
 import random
 from collections import deque
@@ -211,31 +212,36 @@ class ReplayMemory:
         self.max_size = max_size
         self.window_length = window_length
         self.mem_size = (max_size + window_length-1);
+        # (state, action, reward, is_terminal)为一个tuple
         self.mem_state = np.ones((self.mem_size, self.psize, self.psize), dtype=np.uint8)
         self.mem_action = np.ones(self.mem_size, dtype=np.int8)
         self.mem_reward = np.ones(self.mem_size, dtype=np.float32)
         self.mem_terminal = np.ones(self.mem_size, dtype=np.bool)
         self.start = 0
         # End point to the next position.
-        # The content doesn't change when end points at it but change
-        # when end points move forward from it.
+        # The content doesn't change when end points at it, but change when end points move forward from it.
         self.end = 0
         self.full = False
 
     def append(self, state, action, reward, is_terminal):
-        if self.start == 0 and self.end == 0: # the first frame
+        # 空环 the first frame
+        if self.start == 0 and self.end == 0:
             # 1 2 3 S E
-            # 第一帧 画面重复 成 window size 也就是4
-            for i in range(self.window_length-1):
-                self.mem_state[i] = state
+            # 第一帧 画面重复 成 window size 也就是4. PPT DQN 算法的实现技巧
+            for i in range(self.window_length-1): # for i in range (4-1), i: 0, 1, 2
+                self.mem_state[i] = state # i.e. mem_state[0]=state, mem_state[1]=state. mem_state[2]=state
                 # 取模 防止超出 环的大小
                 self.start = (self.start + 1) % self.mem_size
-            # now start 对应 PPT 43 页 K的位置
-            self.mem_state[self.start] = state
-            self.mem_action[self.start] = action
+
+            # Note: 由于上面的for loop, start 位置一直在变, 出了for loop, start=3.
+            # now start 对应 PPT 44 页 K的位置
+            # ??? 为什么上面for loop, 里面没有 e.g. self.mem_action[1] = action， self.mem_reward[1] = reward
+            self.mem_state[self.start] = state # mem_state[3]=state
+            self.mem_action[self.start] = action # mem_action[3]=action
             self.mem_reward[self.start] = reward
             self.mem_terminal[self.start] = is_terminal
             self.end = (self.start + 1) % self.mem_size
+
         # 环里有内容了，直接在end 的位置操作
         else:
             # Case 1:  1 2 3 S ... E
@@ -245,6 +251,7 @@ class ReplayMemory:
             self.mem_reward[self.end] = reward
             self.mem_terminal[self.end] = is_terminal
             self.end = (self.end + 1) % self.mem_size
+
             # full state
             if self.end > 0 and self.end < self.start:
                 self.full = True
@@ -263,32 +270,36 @@ class ReplayMemory:
             count = 0
             #未满
             if self.end > self.start:
-                count = self.end - self.start
+                count = self.end - self.start # 对应PPT 45页， K可sample的范围 [S, E)
             #满了    
             else:
-                count = self.max_size
+                count = self.max_size # 对应PPT 45页， K可sample的范围 max_size
 
             if count <= batch_size:
-                indices = np.arange(0, count-1)
+                indices = np.arange(0, count-1) # 表示不够 或 刚刚好，所有的都选上
             else:
                 #indices range is 0 ... count-2
-                indices = np.random.randint(0, count-1, size=batch_size)
+                indices = np.random.randint(0, count-1, size=batch_size)  # 表示有足够的可选
 
             # 4 is the current state frame because of our design
-            # 对应PPT 43 页
+            # 对应PPT 44 页：􏱲􏱴􏱉􏰬􏱴􏱵􏲒􏰱抽样一个样本包含􏱲􏱴􏱉􏰬􏱴􏱵􏲒􏰱(state􏰈next_state􏰈action, reward, is_terminal)􏰈 其中(state, next_state) 至少需要5帧画面
+            # 这里的start对应PPT 44页里的K的位置
             indices_5 = (self.start + indices + 1) % self.mem_size
             indices_4 = (self.start + indices) % self.mem_size
             indices_3 = (self.start + indices - 1) % self.mem_size
             indices_2 = (self.start + indices - 2) % self.mem_size
             indices_1 = (self.start + indices - 3) % self.mem_size
+
+            # frame_4 对应PPT 44 页 中的K
             frame_5 = self.mem_state[indices_5]
-            # frame_4 对应PPT 43 页 中的K
             frame_4 = self.mem_state[indices_4]
             frame_3 = self.mem_state[indices_3]
             frame_2 = self.mem_state[indices_2]
             frame_1 = self.mem_state[indices_1]
 
+            # 对应PPT 44 页 中的图
             state_list = np.array([frame_1, frame_2, frame_3, frame_4])
+            # ??? 为什么要transpose？ 为什么要transpose在做什么？
             state_list = np.transpose(state_list, [1,0,2,3])
 
             next_state_list = np.array([frame_2, frame_3, frame_4, frame_5])

@@ -1,3 +1,4 @@
+#coding:utf-8
 """Suggested Preprocessors."""
 
 import numpy as np
@@ -55,6 +56,7 @@ class AtariPreprocessor(Preprocessor):
 
         return image.crop((left, top, right, bottom))
 
+    # 预处理 PPT: Week11.Session1.Deep_Q_Network_V1.7.pdf, Section: 其他实现技巧(以Atari环境为例)
     def process_state_for_memory(self, state):
         """Scale, convert to greyscale and store as uint8.
 
@@ -79,7 +81,7 @@ class AtariPreprocessor(Preprocessor):
         # 切成 84 * 84
         state = self.crop_image(state, self.scale[0], self.scale[1])
         state = np.asarray(state)
-        # 这里还没有把4帧累加到一起。。。累加是在mem array 里做的也就是memory replay class 里
+        # 这里还没有把4帧叠到一起. 叠加操作是在mem array里做的也就是 core.py里的ReplayMemory类, 等到叠加操作结束，8
         return state
 
     def process_state_for_network(self, state):

@@ -1,3 +1,5 @@
+#coding:utf-8
+
 import numpy as np
 import sys
 import keras.models
@@ -60,9 +62,10 @@ class DQNAgent:
 				 ):
 
 		self.q_network = q_network
-
+		# q_network: used for loss function right side i.e. Q(s, a, w) 预测的值。 让这个网络里的w先学习，
+		# target_network： 和q_network同一个网络，只不过这里的w先固定住一段时间，等到上面 q_network 学习好了，再把学习好了的w带入这个target_network
 		self.target_network = keras.models.clone_model(q_network)
-		self.target_network.set_weights(q_network.get_weights())
+		self.target_network.set_weights(q_network.get_weights()) # 等到 q_network 学习好了，再把学习好了的w带入这个target_network
 		self.target_q_values_func = K.function([self.target_network.layers[0].input], [self.target_network.layers[5].output])
 
 		self.q_values_func = q_values_func
@@ -166,23 +169,28 @@ class DQNAgent:
 		"""
 
 		# retrive from memory
+		# 从经验数组D中随机抽取一批转移样本 ( 𝜙t , 𝑎t , 𝑟t , 𝜙(t+1))
 		states, actions, rewards, new_states, is_terminals = self.memory.sample(self.batch_size)
 
 		preprocessed_states, preprocessed_new_states = self.preprocessor.process_batch(states, new_states)
 
 		actions = self.preprocessor.process_action(actions)
+
+
 		# update network
+		# 下面几行 对应算法里的： 计算Q值 step
 		q_values = self.cal_target_q_values(preprocessed_new_states)
 		max_q_values = np.max(q_values, axis=1)
 		max_q_values[is_terminals] = 0.0
 		targets = rewards + self.gamma * max_q_values
 		targets = np.expand_dims(targets, axis=1)
 
-		self.q_network.train_on_batch([preprocessed_states, actions], targets)
+		# 先固定住target_network, 这里train q_network(i.e.就是loss function的右半边的Q(𝜙j,𝑎j; 𝜔)), 得到loss, 并梯度下降得到新的w
+		self.q_network.train_on_batch([preprocessed_states, actions], targets) # q_network 也就是keras 的Model
 
-		if self.num_steps % self.target_update_freq == 0:
+		if self.num_steps % self.target_update_freq == 0: # 控制 update target_network w值的frequency, 已达到延迟跟新target_network的效果
 			print("Update target network at %d steps" % self.num_steps)
-			self.update_target_network()
+			self.update_target_network() # 其实就一句话： self.target_network.set_weights(self.q_network.get_weights())
 
 	def fit(self, env, num_iterations, max_episode_length=None):
 		"""Fit your model to the provided environment.
@@ -228,15 +236,15 @@ class DQNAgent:
 				#env.render()
 				self.num_steps += 1
 				t += 1
-				action, _ = self.select_action(state)
-				next_state, reward, is_terminal, debug_info = env.step(action)
+				action, _ = self.select_action(state) # 选择Q值最大的动作:𝑎(t) =max𝑄∗(𝜙(S(t)),𝑎;𝜔),并有一定概率随机选一个动作
+				next_state, reward, is_terminal, debug_info = env.step(action) # 在环境里执行动作得到奖励r以及新的画面X(t+1)
 
 				reward = self.preprocessor.process_reward(reward)
 				total_reward += reward
 
-				preprocessed_state = self.preprocessor.process_state_for_memory(state)
+				preprocessed_state = self.preprocessor.process_state_for_memory(state) # 把新的画面X(t+1)加到St之后并进行预处理得到𝜙(t+1) = 𝜙(S(t+1)) .
 
-				self.memory.append(preprocessed_state, action, reward, is_terminal)
+				self.memory.append(preprocessed_state, action, reward, is_terminal) # 把状态转移信息( 𝜙t , 𝑎t , 𝑟t , 𝜙(t+1)) 放入经验数组D中
 
 				if self.num_steps > self.num_burn_in:
 					if self.mode != 'train':
