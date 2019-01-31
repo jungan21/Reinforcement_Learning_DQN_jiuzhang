@@ -24,6 +24,7 @@ from deeprl_p2.preprocessors import PreprocessorSequence
 from deeprl_p2.policy import UniformRandomPolicy, GreedyPolicy, GreedyEpsilonPolicy, LinearDecayGreedyEpsilonPolicy
 from deeprl_p2.core import ReplayMemory
 
+# 创建神经网络
 def create_model(window, input_shape, num_actions,
                  model_name='q_network'):  # noqa: D103
     """Create the Q-network model.
@@ -63,27 +64,30 @@ def create_model(window, input_shape, num_actions,
                 input_action = Input(shape=(num_actions,))
 
             with tf.name_scope('conv1'):
+                # 16 个 size为8*8的filters
                 conv1 = Conv2D(16, (8, 8), data_format='channels_first', kernel_initializer='glorot_uniform', activation='relu', padding='valid', strides=(4, 4))(input_state)
 
             with tf.name_scope('conv2'):
+                # 32 个 size为4*4的filters
                 conv2 = Conv2D(32, (4, 4), data_format='channels_first', kernel_initializer='glorot_uniform', activation='relu', padding='valid', strides=(2, 2))(conv1)
 
             with tf.name_scope('fc'):
-                flattened = Flatten()(conv2) # flatten conv2
+                flattened = Flatten()(conv2) # flatten conv2 ...打平
                 # in Keras, Dense 就是 FC layer
-                dense1 = Dense(256, kernel_initializer='glorot_uniform', activation='relu')(flattened)
+                dense1 = Dense(256, kernel_initializer='glorot_uniform', activation='relu')(flattened) # flatten之后作为这里全连接层的输入
 
             with tf.name_scope('output'):
                 # ??? 如何做到挑选action 和计算q_values?
-                q_values = Dense(num_actions, kernel_initializer='glorot_uniform', activation=None)(dense1)
+                # 这边构建了一个全连接层 每一个神经元最后对应一个操作的q_value  最后挑选action使用argmax就可以了
+                q_values = Dense(num_actions, kernel_initializer='glorot_uniform', activation=None)(dense1) # activation=None， 根据论文这就表示liner layer
                 # selected action: lable is 1, unselect action: label is 0
                 q_v = dot([q_values, input_action], axes=1)
 
-            network_model = Model(inputs=[input_state, input_action], outputs=q_v)
+            network_model = Model(inputs=[input_state, input_action], outputs=q_v) # 对应PPT page10（DQN核心实现-Network Model）, 左半边的模型图
             # K.function  建立输入 输出的关系
-            q_values_func = K.function([input_state], [q_values]) # K: import keras.backend as K
+            q_values_func = K.function([input_state], [q_values]) # K: import keras.backend as K # 对应PPT page10, 右半边的模型图
 
-        network_model.summary()
+        network_model.summary() # 会把model 的结构打印出来
 
     elif model_name == 'double_q_network':
         pass

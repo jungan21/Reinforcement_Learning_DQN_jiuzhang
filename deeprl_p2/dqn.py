@@ -74,7 +74,7 @@ class DQNAgent:
 		self.policy = policy
 		self.gamma = gamma
 		self.target_update_freq = target_update_freq
-		self.num_burn_in = num_burn_in
+		self.num_burn_in = num_burn_in # 等采集足够的数据，才sample
 		self.train_freq = train_freq
 		self.batch_size = batch_size
 		self.save_path = save_path
@@ -83,6 +83,7 @@ class DQNAgent:
 		# can be train, test or init
 		self.mode = 'init'
 
+	# Keras 的interface
 	def compile(self, optimizer, loss_func):
 		"""Setup all of the TF graph variables/ops.
 
@@ -108,7 +109,7 @@ class DQNAgent:
 		self.update_target_network()
 
 	def update_target_network(self):
-		self.target_network.set_weights(self.q_network.get_weights())
+		self.target_network.set_weights(self.q_network.get_weights()) # 把预测网络的weights 放入到延迟更新的目标网络
 
 
 	def calc_q_values(self, state):
@@ -151,7 +152,7 @@ class DQNAgent:
 		#print (np.argmax(q_values), q_values)
 		return self.policy[self.mode].select_action(q_values), preprocessed_state
 
-
+	# 训练 预测网络
 	def update_predict_network(self):
 		"""Update your predict network.
 

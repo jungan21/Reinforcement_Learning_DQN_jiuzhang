@@ -79,7 +79,7 @@ class GreedyPolicy(Policy):
     """
 
     def select_action(self, q_values, **kwargs):  # noqa: D102
-        return np.argmax(q_values)
+        return np.argmax(q_values) # 选出最大的Q值对应的下标
 
 
 class GreedyEpsilonPolicy(Policy):

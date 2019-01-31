@@ -235,7 +235,7 @@ class ReplayMemory:
 
             # Note: 由于上面的for loop, start 位置一直在变, 出了for loop, start=3.
             # now start 对应 PPT 44 页 K的位置
-            # ??? 为什么上面for loop, 里面没有 e.g. self.mem_action[1] = action， self.mem_reward[1] = reward
+            # 为什么上面for loop, 里面没有 e.g. self.mem_action[1] = action， self.mem_reward[1] = reward， 只有最后一帧画面才放入state, action, reward, terminal
             self.mem_state[self.start] = state # mem_state[3]=state
             self.mem_action[self.start] = action # mem_action[3]=action
             self.mem_reward[self.start] = reward
@@ -267,7 +267,7 @@ class ReplayMemory:
             return None, None, None, None, None
         # 有内容的
         else:
-            count = 0
+            count = 0 # 用来计算样本数量
             #未满
             if self.end > self.start:
                 count = self.end - self.start # 对应PPT 45页， K可sample的范围 [S, E)
@@ -290,7 +290,7 @@ class ReplayMemory:
             indices_2 = (self.start + indices - 2) % self.mem_size
             indices_1 = (self.start + indices - 3) % self.mem_size
 
-            # frame_4 对应PPT 44 页 中的K
+            # frame_4 对应PPT 44 页 中的K, 把memory里的画面取出
             frame_5 = self.mem_state[indices_5]
             frame_4 = self.mem_state[indices_4]
             frame_3 = self.mem_state[indices_3]
@@ -298,9 +298,9 @@ class ReplayMemory:
             frame_1 = self.mem_state[indices_1]
 
             # 对应PPT 44 页 中的图
-            state_list = np.array([frame_1, frame_2, frame_3, frame_4])
-            # ??? 为什么要transpose？ 为什么要transpose在做什么？
-            state_list = np.transpose(state_list, [1,0,2,3])
+            state_list = np.array([frame_1, frame_2, frame_3, frame_4]) # 4 * 32 * 84 84, 32是batch size, 我们想把 32 放到第一位
+            # 为什么要transpose？ 为什么要transpose在做什么？
+            state_list = np.transpose(state_list, [1,0,2,3]) # 为了把batch size 放到第一维 # 32 * 4 * 84 * 84
 
             next_state_list = np.array([frame_2, frame_3, frame_4, frame_5])
             next_state_list = np.transpose(next_state_list, [1,0,2,3])
@@ -310,7 +310,7 @@ class ReplayMemory:
             # is terminal 环
             terminal_list = self.mem_terminal[indices_4]
 
-            return state_list, action_list, reward_list, next_state_list, terminal_list
+            return state_list, action_list, reward_list, next_state_list, terminal_list # 每个都是数组
 
     def clear(self):
         self.start = 0

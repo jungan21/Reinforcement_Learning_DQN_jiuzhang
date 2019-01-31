@@ -1,5 +1,5 @@
 #coding:utf-8
-"""Loss functions."""
+"""Loss functions. 如何计算我们的loss"""
 
 import keras.backend as K
 import semver
@@ -25,6 +25,7 @@ def huber_loss(y_true, y_pred, max_grad=1.):
     tf.Tensor
       The huber loss.
     """
+    # 就是套公式
     diff = y_true - y_pred
     diff_squared = diff * diff
     max_grad_squared = max_grad * max_grad
